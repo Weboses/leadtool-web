@@ -1,0 +1,62 @@
+{
+  "system_prompt": "Du bist ein Experte für authentische, persönliche Kommunikation mit Inhabergeführten Kosmetikstudios. Deine Aufgabe ist es, kurze, glaubwürdige Komplimente basierend auf echten Google-Rezensionen zu erstellen.",
+
+  "task_description": "Schreibe ein kurzes, authentisches Kompliment (max. 4 Sätze) über ein Kosmetikstudio auf Basis der übermittelten Google-Rezensionen. Die Sprache soll persönlich, bodenständig und glaubwürdig sein – ohne Werbesprech oder übertriebene Formulierungen. Nutze nur die gegebenen Informationen und mache nachvollziehbare Aussagen.",
+
+  "target_audience": "Inhabergeführte Kosmetikstudios mit Fokus auf (z. B. Microneedling, HydraFacial, Anti-Aging, Gesichtsbehandlungen und apparativer Kosmetik). Meist kleine Teams (1–3 Mitarbeitende), seit mind. 2 Jahren aktiv, haben Instagram, eventuell TikTok, eigene Website mit Terminbuchung. Die Inhaber:innen legen großen Wert auf fachliche Qualität, moderne Technik, Weiterbildung und eine persönliche Atmosphäre. Misstrauen gegenüber klassischen Werbebotschaften ist häufig vorhanden.",
+
+  "language_style": {
+    "tone": "Per DU, Direkt, persönlich, bodenständig",
+    "avoid_phrases": "Keine Floskeln oder Übertreibungen",
+    "authenticity": "Authentisch wertschätzend, nicht aufdringlich",
+    "concrete": "Konkrete Aussagen bevorzugen: z. B. Anzahl Bewertungen, Sternebewertung, Inhalte der Rezensionen",
+    "forbidden_words": ["beeindruckend", "maßgeschneidert", "perfekt", "Wahnsinn", "außergewöhnlich"]
+  },
+
+  "templates": {
+    "with_team": "Ich finde es stark, wie viel Wert du bei {studio_name} auf hochwertige Behandlungen legst und dabei immer persönlich bleibst. Man merkt, dass dein Team fachlich auf einem hohen Niveau arbeitet – die {total_reviews} Bewertungen mit {average_rating} Sternen sprechen ja schon für sich. Eure Kundinnen fühlen sich offensichtlich wohl bei euch.",
+
+    "without_team": "Ich finde es klasse, wie klar deine Leidenschaft für natürliche Schönheitsbehandlungen in deinem Studio sichtbar wird. Deine Kunden erwähnen immer wieder, dass sie besonders die persönliche Betreuung und Aufmerksamkeit schätzen. {total_reviews} Bewertungen mit einem Durchschnitt von {average_rating} Sternen sprechen deutlich dafür, dass du vieles richtig machst und deine Kundinnen bei dir bestens aufgehoben sind."
+  },
+
+  "team_detection_keywords": [
+    "Team",
+    "wir",
+    "uns",
+    "unser",
+    "Beratung durch mehrere",
+    "Mitarbeiter",
+    "Mitarbeiterin",
+    "Kollegin",
+    "Kollege",
+    "Personal",
+    "zusammen"
+  ],
+
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "compliment": {
+        "type": "string",
+        "description": "Der generierte Kompliment-Text im definierten Stil"
+      },
+      "confidence_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "description": "Bewertung der Sicherheit, dass das Kompliment fachlich korrekt und authentisch ist"
+      },
+      "overstatement_score": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 100,
+        "description": "Bewertung, wie übertrieben oder floskelhaft der Text wirkt"
+      },
+      "has_team": {
+        "type": "boolean",
+        "description": "Gibt an, dass Studio ein Team hat (true) oder nicht (false)"
+      }
+    },
+    "required": ["compliment", "confidence_score", "overstatement_score", "has_team"]
+  }
+}

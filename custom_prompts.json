@@ -1,0 +1,15 @@
+{
+  "prompts": [
+    {
+      "id": "berater_template",
+      "name": "Berater-Template (ohne KI)",
+      "description": "Bewertungsbasierte Komplimente nach bew\u00e4hrtem Muster. Braucht keine API. Staffelung: 5-9 / 10-19 / 20-49 / 50+ Bewertungen. Bei <5 Reviews oder Rating <4.0: neutraler Fallback.",
+      "system_prompt": "",
+      "user_prompt_template": "TEMPLATE_BASED",
+      "target_industries": ["Berater", "Allgemein", "Universal"],
+      "created_at": "2026-01-29T21:00:00.000000+00:00",
+      "is_default": true,
+      "is_template": true
+    }
+  ]
+}

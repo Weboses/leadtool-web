@@ -1,0 +1,106 @@
+{
+  "Healthcare": {
+    "Ärzte": [
+      "Zahnarzt",
+      "Allgemeinmediziner",
+      "Facharzt",
+      "Kieferorthopäde"
+    ],
+    "Therapeuten": [
+      "Physiotherapie",
+      "Psychotherapie",
+      "Ergotherapie"
+    ],
+    "Pflege": [
+      "Pflegedienst",
+      "Altenpflege",
+      "Krankenpflege"
+    ],
+    "Sonstige": [
+      "Apotheke",
+      "Optiker",
+      "Hörgeräteakustiker"
+    ]
+  },
+  "Industrie": {
+    "Maschinenbau": [
+      "Maschinenbauunternehmen",
+      "Maschinenhersteller",
+      "Anlagenbau"
+    ],
+    "Metallverarbeitung": [
+      "Metallverarbeitungsunternehmen",
+      "Dreherei",
+      "Fräserei",
+      "Schweißerei"
+    ],
+    "Automationstechnik": [
+      "Automationsunternehmen",
+      "Robotik",
+      "Steuerungstechnik"
+    ],
+    "Werkzeugbau": [
+      "Werkzeughersteller",
+      "Formenbau",
+      "Vorrichtungsbau"
+    ]
+  },
+  "Fertigung": {
+    "Allgemein": [
+      "Hersteller",
+      "Produzent",
+      "Fertigung"
+    ],
+    "Kunststoff": [
+      "Kunststoffhersteller",
+      "Spritzguss",
+      "Extrusion"
+    ],
+    "Elektronik": [
+      "Elektronikfertigung",
+      "Leiterplattenhersteller",
+      "Baugruppenfertigung"
+    ]
+  },
+  "Dienstleistung": {
+    "Beratung": [
+      "Unternehmensberatung",
+      "IT-Beratung",
+      "Managementberatung"
+    ],
+    "Engineering": [
+      "Ingenieurbüro",
+      "Konstruktionsbüro",
+      "Planungsbüro"
+    ],
+    "Handel": [
+      "Großhandel",
+      "Einzelhandel",
+      "Vertrieb"
+    ]
+  },
+  "IT & Software": {
+    "Entwicklung": [
+      "Softwareentwickler/-hersteller",
+      "App-Entwicklung",
+      "Web-Entwicklung"
+    ],
+    "Services": [
+      "IT-Dienstleister",
+      "Cloud-Services",
+      "Hosting"
+    ]
+  },
+  "Sonstige": {
+    "Allgemein": [
+      "Geschaftsstelle",
+      "Bildungszentrum",
+      "Logistik"
+    ],
+    "Spezial": [
+      "3D-Druckservice",
+      "Industrieanlagenanbieter",
+      "Metallmaschinenlieferant"
+    ]
+  }
+}

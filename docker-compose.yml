@@ -1,0 +1,20 @@
+services:
+  leadtool-web:
+    build: .
+    container_name: leadtool-webapp
+    ports:
+      - "5000:5000"
+    volumes:
+      - leadtool-data:/app/data
+      - leadtool-backups:/app/backups
+      - leadtool-uploads:/app/uploads
+    environment:
+      - SECRET_KEY=your-secret-key-change-this
+      - FLASK_DEBUG=false
+    restart: unless-stopped
+    shm_size: '1gb'
+
+volumes:
+  leadtool-data:
+  leadtool-backups:
+  leadtool-uploads:

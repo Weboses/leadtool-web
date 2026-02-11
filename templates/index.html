@@ -1,0 +1,626 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="app-container">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1 class="logo">Lead-Tool</h1>
+            <span class="version">Web Edition v4.0</span>
+        </div>
+
+        <nav class="sidebar-nav">
+            <button class="nav-btn active" data-view="leads">
+                <span class="icon">📊</span>
+                <span>Leads</span>
+            </button>
+            <button class="nav-btn" data-view="upload">
+                <span class="icon">📤</span>
+                <span>CSV Upload</span>
+            </button>
+            <button class="nav-btn" data-view="prompts">
+                <span class="icon">💬</span>
+                <span>Prompts</span>
+            </button>
+            <button class="nav-btn" data-view="api">
+                <span class="icon">🔗</span>
+                <span>API Verbindung</span>
+            </button>
+            <button class="nav-btn" data-view="settings">
+                <span class="icon">⚙️</span>
+                <span>Einstellungen</span>
+            </button>
+        </nav>
+
+        <!-- Progress Panel (wie im Original Desktop-App) -->
+        <div class="progress-panel" id="progressPanel" style="display: none;">
+            <h4 id="progressTitle">Verarbeite...</h4>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p class="progress-count" id="progressCount">0 / 0</p>
+            <p class="progress-time" id="progressTime">Verstrichene Zeit: 0s | ETA: --</p>
+            <div class="progress-stats-grid">
+                <span class="stat-ok" id="statOk">OK: 0</span>
+                <span class="stat-skip" id="statSkip">Skip: 0</span>
+                <span class="stat-error" id="statError">Err: 0</span>
+            </div>
+            <p class="progress-current" id="progressCurrent"></p>
+            <button class="btn btn-danger btn-sm" id="stopBtn" onclick="cancelTask()">STOPPEN</button>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="theme-toggle-sidebar">
+                <span>Dark Mode</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <a href="{{ url_for('logout') }}" class="logout-link">Abmelden</a>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <!-- LEADS VIEW -->
+        <div class="view active" id="leadsView">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="top-bar-left">
+                    <select id="projectSelect" class="select-project">
+                        <option value="">Alle Projekte</option>
+                        {% for project in projects %}
+                        <option value="{{ project.id }}">{{ project.name }} ({{ project.lead_count }} Leads)</option>
+                        {% endfor %}
+                    </select>
+                    <button class="btn btn-sm btn-danger" onclick="deleteProject()" title="Ausgewähltes Projekt löschen">
+                        🗑️ Projekt löschen
+                    </button>
+
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Suchen...">
+                    </div>
+
+                    <span class="lead-count" id="leadCount">0 Leads</span>
+                    <span class="selected-count" id="selectedCount">0 ausgewählt</span>
+                </div>
+
+                <div class="top-bar-right">
+                    <button class="btn btn-sm" onclick="selectAll()">Alle</button>
+                    <button class="btn btn-sm" onclick="selectPage()">Seite</button>
+                    <button class="btn btn-sm" onclick="deselectAll()">Keine</button>
+                </div>
+            </div>
+
+            <!-- Erweiterte Filter (wie im Original Desktop!) -->
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Kategorie</label>
+                    <input type="text" id="categoryFilter" placeholder="z.B. Zahnarzt, Restaurant..."
+                           onkeyup="if(event.key==='Enter') applyFilters()">
+                </div>
+                <div class="filter-group">
+                    <label>Min. Rating</label>
+                    <select id="ratingFilter" onchange="applyFilters()">
+                        <option value="">Alle</option>
+                        <option value="4.5">⭐ 4.5+</option>
+                        <option value="4.0">⭐ 4.0+</option>
+                        <option value="3.5">⭐ 3.5+</option>
+                        <option value="3.0">⭐ 3.0+</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Min. Reviews</label>
+                    <select id="reviewsFilter" onchange="applyFilters()">
+                        <option value="">Alle</option>
+                        <option value="100">100+</option>
+                        <option value="50">50+</option>
+                        <option value="20">20+</option>
+                        <option value="10">10+</option>
+                        <option value="5">5+</option>
+                    </select>
+                </div>
+                <button class="btn btn-sm btn-primary" onclick="applyFilters()">Filter anwenden</button>
+                <button class="btn btn-sm" onclick="resetAllFilters()">Zurücksetzen</button>
+            </div>
+
+            <!-- Quick-Filter Buttons -->
+            <div class="filter-bar">
+                <button class="btn btn-sm filter-btn" onclick="filterNoNames()" title="Leads ohne Vor-/Nachname">
+                    Ohne Namen
+                </button>
+                <button class="btn btn-sm filter-btn" onclick="filterNoCompliment()" title="Leads ohne Kompliment">
+                    Ohne Kompliment
+                </button>
+                <button class="btn btn-sm filter-btn" onclick="filterComplete()" title="Leads mit Namen + Kompliment">
+                    Vollständig
+                </button>
+                <button class="btn btn-sm filter-btn active" onclick="filterReset()" title="Alle Filter zurücksetzen">
+                    Alle zeigen
+                </button>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="findNames()">
+                    <span class="icon">🔍</span> Namen finden
+                </button>
+                <button class="btn btn-warning" onclick="generateCompliments()">
+                    <span class="icon">💬</span> Komplimente generieren
+                </button>
+                <button class="btn btn-success" onclick="exportCSV()">
+                    <span class="icon">📥</span> CSV Export
+                </button>
+                <button class="btn btn-success" onclick="exportExcel()">
+                    <span class="icon">📊</span> Excel Export
+                </button>
+                <button class="btn btn-danger" onclick="deleteCompliments()">
+                    <span class="icon">🗑️</span> Komplimente löschen
+                </button>
+            </div>
+
+            <!-- Data Table - Dynamisch mit allen CSV-Spalten! -->
+            <div class="table-container" id="tableContainer">
+                <table class="data-table" id="leadsTable">
+                    <thead id="leadsTableHead">
+                        <!-- Wird dynamisch von JavaScript gefüllt -->
+                        <tr>
+                            <th class="checkbox-col">
+                                <input type="checkbox" id="selectAllCheckbox" onchange="toggleAllOnPage()">
+                            </th>
+                            <th class="nr-col">Nr.</th>
+                            <th>Vorname</th>
+                            <th>Nachname</th>
+                            <th>Kompliment</th>
+                            <th>Lade...</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leadsTableBody">
+                        <!-- Filled by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination" id="pagination">
+                <button class="btn btn-sm" id="prevPage" onclick="prevPage()">← Zurück</button>
+                <span id="pageInfo">Seite 1 von 1</span>
+                <button class="btn btn-sm" id="nextPage" onclick="nextPage()">Weiter →</button>
+                <select id="perPageSelect" onchange="changePerPage()">
+                    <option value="50">50 pro Seite</option>
+                    <option value="100">100 pro Seite</option>
+                    <option value="200">200 pro Seite</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- UPLOAD VIEW -->
+        <div class="view" id="uploadView">
+            <div class="view-header">
+                <h2>CSV Upload</h2>
+            </div>
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📤</div>
+                <h3>CSV-Datei hochladen</h3>
+                <p>Ziehe eine Datei hierher oder klicke zum Auswählen</p>
+                <input type="file" id="fileInput" accept=".csv" style="display: none;">
+                <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                    Datei auswählen
+                </button>
+            </div>
+            <div class="upload-info">
+                <h4>Unterstützte Spalten:</h4>
+                <ul>
+                    <li><strong>website</strong> (erforderlich) - URL der Firma</li>
+                    <li>name / firma - Firmenname</li>
+                    <li>email - E-Mail-Adresse</li>
+                    <li>phone / telefon - Telefonnummer</li>
+                    <li>first_name / vorname - Vorname</li>
+                    <li>last_name / nachname - Nachname</li>
+                    <li>rating / bewertung - Bewertung</li>
+                    <li>reviews - Anzahl Bewertungen</li>
+                    <li>city / stadt - Stadt</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- PROMPTS VIEW - Wie im Original! -->
+        <div class="view" id="promptsView">
+            <div class="view-header">
+                <h2>💬 Prompt Templates</h2>
+                <button class="btn btn-primary" onclick="openNewPromptModal()">➕ Neuer Prompt</button>
+            </div>
+            <div class="info-box">
+                <p>Hier kannst du Prompt-Templates für die Kompliment-Generierung verwalten.
+                Nutze Platzhalter wie <code>{name}</code>, <code>{rating}</code>, <code>{reviews}</code>,
+                <code>{review_keywords}</code>, <code>{category}</code>, <code>{city}</code> in deinen Prompts.</p>
+            </div>
+            <div class="prompts-grid" id="promptsGrid">
+                <!-- Wird per JavaScript gefüllt -->
+                <div class="loading-message">Lade Prompts...</div>
+            </div>
+        </div>
+
+        <!-- API VIEW - Wie im Original! -->
+        <div class="view" id="apiView">
+            <div class="view-header">
+                <h2>🤖 API Konfiguration</h2>
+            </div>
+            <div class="info-box">
+                <p>Konfiguriere hier deine API-Keys für verschiedene LLM-Provider.
+                Unterstützt werden: <strong>DeepSeek</strong>, <strong>OpenAI</strong>, <strong>Anthropic</strong>.</p>
+            </div>
+            <div class="active-api-badge" id="activeApiBadge">
+                ✅ Aktuell aktiv: <span id="activeApiName">DeepSeek</span>
+            </div>
+            <div class="api-cards" id="apiCards">
+                <!-- DeepSeek -->
+                <div class="api-card" data-provider="deepseek" id="apiCard_deepseek">
+                    <div class="api-card-header">
+                        <h3>🤖 DeepSeek</h3>
+                        <span class="active-badge" id="badge_deepseek">AKTIV</span>
+                    </div>
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <input type="password" id="apiKey_deepseek" placeholder="sk-..." class="api-key-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Modell</label>
+                        <select id="model_deepseek" class="model-select">
+                            <option value="deepseek-chat">deepseek-chat</option>
+                            <option value="deepseek-coder">deepseek-coder</option>
+                            <option value="deepseek-reasoner">deepseek-reasoner</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-sm btn-primary" onclick="setActiveProvider('deepseek')">🔄 Als aktiv setzen</button>
+                </div>
+
+                <!-- OpenAI -->
+                <div class="api-card" data-provider="openai" id="apiCard_openai">
+                    <div class="api-card-header">
+                        <h3>🟢 OpenAI</h3>
+                        <span class="active-badge hidden" id="badge_openai">AKTIV</span>
+                    </div>
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <input type="password" id="apiKey_openai" placeholder="sk-..." class="api-key-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Modell</label>
+                        <select id="model_openai" class="model-select">
+                            <option value="gpt-4o">gpt-4o</option>
+                            <option value="gpt-4o-mini">gpt-4o-mini</option>
+                            <option value="gpt-4-turbo">gpt-4-turbo</option>
+                            <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-sm btn-primary" onclick="setActiveProvider('openai')">🔄 Als aktiv setzen</button>
+                </div>
+
+                <!-- Anthropic -->
+                <div class="api-card" data-provider="anthropic" id="apiCard_anthropic">
+                    <div class="api-card-header">
+                        <h3>🟣 Anthropic</h3>
+                        <span class="active-badge hidden" id="badge_anthropic">AKTIV</span>
+                    </div>
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <input type="password" id="apiKey_anthropic" placeholder="sk-ant-..." class="api-key-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Modell</label>
+                        <select id="model_anthropic" class="model-select">
+                            <option value="claude-3-5-sonnet-20241022">claude-3-5-sonnet</option>
+                            <option value="claude-3-opus-20240229">claude-3-opus</option>
+                            <option value="claude-3-sonnet-20240229">claude-3-sonnet</option>
+                            <option value="claude-3-haiku-20240307">claude-3-haiku</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-sm btn-primary" onclick="setActiveProvider('anthropic')">🔄 Als aktiv setzen</button>
+                </div>
+            </div>
+            <div class="api-actions">
+                <button class="btn btn-success btn-lg" onclick="saveApiConfig()">💾 Konfiguration speichern</button>
+            </div>
+        </div>
+
+        <!-- SETTINGS VIEW - Wie im Original! -->
+        <div class="view" id="settingsView">
+            <div class="view-header">
+                <h2>⚙️ Einstellungen</h2>
+            </div>
+
+            <!-- Datenbank Section -->
+            <div class="settings-section">
+                <h3>🗄️ Datenbank</h3>
+                <div class="settings-info">
+                    <p>Total Leads in Datenbank: <strong id="totalLeadCount">0</strong></p>
+                </div>
+                <div class="settings-buttons">
+                    <button class="btn btn-primary btn-lg" onclick="createBackup()">
+                        💾 Backup erstellen
+                    </button>
+                    <button class="btn btn-danger btn-lg" onclick="confirmClearDatabase()">
+                        🗑️ Datenbank leeren
+                    </button>
+                </div>
+            </div>
+
+            <!-- Erscheinungsbild Section -->
+            <div class="settings-section">
+                <h3>🎨 Erscheinungsbild</h3>
+                <div class="theme-toggle">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="darkModeToggle" checked onchange="toggleTheme()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span>Dark Mode</span>
+                </div>
+            </div>
+
+            <!-- Über Section -->
+            <div class="settings-section">
+                <h3>ℹ️ Über</h3>
+                <div class="about-info">
+                    <p><strong>Lead-Tool V4.0 - Web Edition</strong></p>
+                    <p>Powered by Flask & JavaScript</p>
+                    <p class="muted">© 2025 - All rights reserved</p>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal für Prompt-Editor - Erweitert wie Original! -->
+<div class="modal" id="promptModal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h3 id="promptModalTitle">Neuer Prompt erstellen</h3>
+            <button class="modal-close" onclick="closePromptModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="promptEditId">
+            <div class="form-group">
+                <label>Name *</label>
+                <input type="text" id="promptName" placeholder="z.B. Mein Custom Prompt">
+            </div>
+            <div class="form-group">
+                <label>Beschreibung</label>
+                <input type="text" id="promptDescription" placeholder="Was macht dieser Prompt?">
+            </div>
+            <div class="form-group">
+                <label>Zielgruppe / Branchen</label>
+                <input type="text" id="promptTargetIndustries" placeholder="z.B. Zahnarzt, Kosmetik, Handwerk (kommagetrennt)">
+            </div>
+            <div class="form-group">
+                <label>System Prompt</label>
+                <textarea id="promptSystemText" rows="4" placeholder="Du bist ein Experte für authentische, personalisierte B2B-Kommunikation."></textarea>
+            </div>
+            <div class="form-group">
+                <label>User Prompt Template *</label>
+                <textarea id="promptUserText" rows="8" placeholder="Schreibe ein kurzes, authentisches Kompliment für {name}.
+- Bewertung: {rating} Sterne ({reviews} Bewertungen)
+- Keywords: {review_keywords}
+Das Kompliment soll 2-3 Sätze lang sein."></textarea>
+            </div>
+            <div class="placeholder-hint">
+                <small>Verfügbare Platzhalter: <code>{name}</code>, <code>{rating}</code>, <code>{reviews}</code>,
+                <code>{review_keywords}</code>, <code>{category}</code>, <code>{city}</code>, <code>{description}</code>,
+                <code>{first_name}</code>, <code>{last_name}</code>, <code>{owner_name}</code></small>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closePromptModal()">Abbrechen</button>
+            <button class="btn btn-success" onclick="savePrompt()">💾 Speichern</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal für Lead-Details - ERWEITERT wie Desktop! -->
+<div class="modal" id="leadModal">
+    <div class="modal-content modal-xlarge">
+        <div class="modal-header">
+            <h3 id="leadModalTitle">Lead Details</h3>
+            <button class="modal-close" onclick="closeLeadModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="leadModalBody">
+            <div class="lead-detail-grid">
+                <!-- Spalte 1: Basis-Infos -->
+                <div class="detail-section">
+                    <h4>Firma</h4>
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="leadName">
+                    </div>
+                    <div class="form-group">
+                        <label>Website</label>
+                        <input type="text" id="leadWebsite" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Kategorie</label>
+                        <input type="text" id="leadCategory">
+                    </div>
+                    <div class="form-group">
+                        <label>Beschreibung</label>
+                        <textarea id="leadDescription" rows="2"></textarea>
+                    </div>
+                </div>
+
+                <!-- Spalte 2: Kontakt -->
+                <div class="detail-section">
+                    <h4>Kontakt</h4>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="leadEmail">
+                    </div>
+                    <div class="form-group">
+                        <label>Telefon</label>
+                        <input type="text" id="leadPhone">
+                    </div>
+                    <div class="form-group">
+                        <label>LinkedIn</label>
+                        <input type="url" id="leadLinkedIn">
+                    </div>
+                    <div class="form-group">
+                        <label>Maps-Link</label>
+                        <input type="url" id="leadLink" readonly>
+                    </div>
+                </div>
+
+                <!-- Spalte 3: Kontaktperson -->
+                <div class="detail-section">
+                    <h4>Kontaktperson</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Vorname</label>
+                            <input type="text" id="leadFirstName">
+                        </div>
+                        <div class="form-group">
+                            <label>Nachname</label>
+                            <input type="text" id="leadLastName">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Inhaber/Owner</label>
+                        <input type="text" id="leadOwnerName">
+                    </div>
+                </div>
+
+                <!-- Spalte 4: Adresse -->
+                <div class="detail-section">
+                    <h4>Adresse</h4>
+                    <div class="form-group">
+                        <label>Straße</label>
+                        <input type="text" id="leadAddress">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>PLZ</label>
+                            <input type="text" id="leadZipCode">
+                        </div>
+                        <div class="form-group">
+                            <label>Stadt</label>
+                            <input type="text" id="leadCity">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Bundesland</label>
+                            <input type="text" id="leadState">
+                        </div>
+                        <div class="form-group">
+                            <label>Land</label>
+                            <input type="text" id="leadCountry">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Volle Breite: Bewertung -->
+                <div class="detail-section">
+                    <h4>Bewertung</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Rating ⭐</label>
+                            <input type="text" id="leadRating" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Reviews</label>
+                            <input type="text" id="leadReviews" readonly>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Review Keywords</label>
+                        <textarea id="leadReviewKeywords" rows="2" readonly></textarea>
+                    </div>
+                </div>
+
+                <!-- Volle Breite: Kompliment -->
+                <div class="detail-section full-width">
+                    <h4>Kompliment</h4>
+                    <div class="form-group">
+                        <textarea id="leadCompliment" rows="4" placeholder="Hier wird das generierte Kompliment angezeigt..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-info" onclick="findNameForLead()">🔍 Name suchen</button>
+            <button class="btn btn-warning" onclick="generateComplimentForLead()">✨ Kompliment</button>
+            <button class="btn btn-danger" onclick="deleteLeadCompliment()">🗑️ Kompliment löschen</button>
+            <div style="flex-grow: 1;"></div>
+            <button class="btn" onclick="closeLeadModal()">Abbrechen</button>
+            <button class="btn btn-primary" onclick="saveLeadChanges()">💾 Speichern</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal für Prompt-Auswahl (vor Kompliment-Generierung) -->
+<div class="modal" id="promptSelectModal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h3>Prompt für Kompliment-Generierung auswählen</h3>
+            <button class="modal-close" onclick="closePromptSelectModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-info" id="promptSelectInfo">Wähle einen Prompt oder schreibe einen eigenen Custom Prompt.</p>
+
+            <!-- Vorhandene Prompts -->
+            <div class="prompt-list" id="promptSelectList">
+                <!-- Wird per JavaScript gefüllt -->
+            </div>
+
+            <!-- Custom Prompt Option -->
+            <div class="prompt-option custom-prompt-option" onclick="selectCustomPrompt()">
+                <input type="radio" name="promptSelect" value="CUSTOM" id="customPromptRadio">
+                <div class="prompt-option-info">
+                    <strong>Custom Prompt (selbst schreiben)</strong>
+                    <small>Schreibe deinen eigenen personalisierten Prompt</small>
+                </div>
+            </div>
+
+            <!-- Custom Prompt Textfelder (nur sichtbar wenn custom) -->
+            <div class="custom-prompt-fields" id="customPromptFields" style="display: none;">
+                <div class="form-group">
+                    <label>System-Prompt (optional - definiert KI-Verhalten):</label>
+                    <textarea id="systemPromptText" rows="2">Du bist ein Experte für authentische, personalisierte B2B-Kommunikation.</textarea>
+                </div>
+                <div class="form-group">
+                    <label>User-Prompt (dein Prompt - Platzhalter: {name}, {rating}, {reviews}, {review_keywords}, {category}, {city}, {first_name}, {last_name}):</label>
+                    <textarea id="userPromptText" rows="6">Erstelle ein kurzes, authentisches Kompliment für {name}.
+
+Verfügbare Informationen:
+- Rating: {rating} Sterne ({reviews} Bewertungen)
+- Stadt: {city}
+- Rezensionen: {review_keywords}
+
+Schreibe 2-3 Sätze, die sich auf KONKRETE Details aus den Rezensionen beziehen. Sei authentisch, nicht übertrieben.</textarea>
+                </div>
+            </div>
+
+            <!-- Modell-Auswahl -->
+            <div class="model-selection">
+                <h4>KI-Modell wählen</h4>
+                <div class="model-options">
+                    <label class="model-option">
+                        <input type="radio" name="modelSelect" value="deepseek" checked>
+                        <span>DeepSeek</span>
+                    </label>
+                    <label class="model-option">
+                        <input type="radio" name="modelSelect" value="openai">
+                        <span>OpenAI</span>
+                    </label>
+                    <label class="model-option">
+                        <input type="radio" name="modelSelect" value="anthropic">
+                        <span>Anthropic</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closePromptSelectModal()">Abbrechen</button>
+            <button class="btn btn-warning" onclick="startComplimentGeneration()">Komplimente generieren</button>
+        </div>
+    </div>
+</div>
+{% endblock %}

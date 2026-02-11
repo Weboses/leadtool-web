@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <h1>Lead-Tool V4.0</h1>
+            <p>Web Edition</p>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="alert alert-error">
+            {% for message in messages %}
+            <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST" class="login-form">
+            <div class="form-group">
+                <label for="username">Benutzername</label>
+                <input type="text" id="username" name="username" required autofocus>
+            </div>
+            <div class="form-group">
+                <label for="password">Passwort</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Anmelden</button>
+        </form>
+
+        <div class="login-footer">
+            <p>Standard: admin / leadtool2024</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
