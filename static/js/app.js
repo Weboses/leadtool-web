@@ -1407,23 +1407,63 @@ function updateApiWarning(config) {
 
     // Prüfe ob API verbunden
     if (!config.api_connected) {
-        // Zeige Warnung in der Leads-View
+        // Zeige Warnung mit Eingabefeld
         const leadsView = document.getElementById('leadsView');
         if (leadsView) {
             const warning = document.createElement('div');
             warning.id = 'apiWarning';
             warning.className = 'api-warning';
             warning.innerHTML = `
-                <span class="warning-icon">⚠️</span>
-                <span class="warning-text">
-                    <strong>KI-API nicht verbunden!</strong>
-                    Kompliment-Generierung mit KI funktioniert nicht.
-                    <a href="#" onclick="switchView('api'); return false;">API-Key einrichten →</a>
-                </span>
-                <button class="warning-close" onclick="this.parentElement.remove()">×</button>
+                <span class="warning-icon">🔑</span>
+                <div class="warning-content">
+                    <strong>KI-API verbinden</strong>
+                    <div class="api-key-input-row">
+                        <select id="apiProviderSelect" class="api-provider-select">
+                            <option value="deepseek">DeepSeek</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="anthropic">Anthropic</option>
+                        </select>
+                        <input type="password" id="apiKeyInput" placeholder="API-Key eingeben..." class="api-key-input">
+                        <button onclick="saveSessionApiKey()" class="btn btn-primary btn-sm">Verbinden</button>
+                    </div>
+                </div>
             `;
             leadsView.insertBefore(warning, leadsView.firstChild);
         }
+    }
+}
+
+async function saveSessionApiKey() {
+    const provider = document.getElementById('apiProviderSelect').value;
+    const apiKey = document.getElementById('apiKeyInput').value.trim();
+
+    if (!apiKey) {
+        showToast('Bitte API-Key eingeben', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/session-key', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ provider, api_key: apiKey })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('✓ KI-API verbunden!', 'success');
+            // Warnung entfernen
+            const warning = document.getElementById('apiWarning');
+            if (warning) warning.remove();
+            // Status aktualisieren
+            state.apiConnected = true;
+        } else {
+            showToast(data.error || 'Fehler beim Verbinden', 'error');
+        }
+    } catch (error) {
+        showToast('Verbindungsfehler', 'error');
+        console.error(error);
     }
 }
 

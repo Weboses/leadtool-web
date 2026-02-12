@@ -699,6 +699,60 @@ body {
     color: var(--text-primary);
 }
 
+.api-warning .warning-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.api-key-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.api-provider-select {
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 13px;
+    min-width: 120px;
+}
+
+.api-key-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.api-key-input:focus,
+.api-provider-select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+@media (max-width: 768px) {
+    .api-key-input-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .api-provider-select,
+    .api-key-input {
+        width: 100%;
+        min-width: auto;
+    }
+}
+
 .data-table {
     width: auto;
     min-width: max-content;  /* Mindestens so breit wie Inhalt */

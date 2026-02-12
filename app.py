@@ -1137,13 +1137,32 @@ Das Kompliment soll 2-3 Sätze lang sein und authentisch klingen."""
         'mode': 'template' if use_template_only else 'ai'
     }
 
+    # Session-Key vor Worker holen (weil Worker in eigenem Thread läuft)
+    session_provider, session_api_key = get_session_api_key()
+
     def worker():
         import time
         generator = None
         if not use_template_only:
             generator = get_compliment_generator()
-            # Provider setzen (deepseek, openai, anthropic)
-            generator.set_provider(provider)
+            # Session-Key hat Priorität
+            if session_api_key:
+                generator.api_enabled = True
+                generator.api_key = session_api_key
+                # Provider-spezifische Einstellungen
+                if session_provider == 'deepseek':
+                    generator.api_base_url = 'https://api.deepseek.com/v1'
+                    generator.api_model = 'deepseek-chat'
+                elif session_provider == 'openai':
+                    generator.api_base_url = 'https://api.openai.com/v1'
+                    generator.api_model = 'gpt-4o-mini'
+                elif session_provider == 'anthropic':
+                    generator.api_base_url = 'https://api.anthropic.com/v1'
+                    generator.api_model = 'claude-3-5-sonnet-20241022'
+                logger.info(f"Using session API key for {session_provider}")
+            else:
+                # Fallback: set_provider versucht Umgebungsvariablen/Config
+                generator.set_provider(provider)
         session_db = db.get_session()
         generated = 0
         skipped = 0
@@ -1251,7 +1270,7 @@ def cancel_task(task_id):
 @app.route('/api/config')
 @login_required
 def get_api_config():
-    """API-Konfiguration abrufen - unterstützt Datei UND Umgebungsvariablen"""
+    """API-Konfiguration abrufen - Session > Umgebungsvariablen > Datei"""
     config_path = os.path.join(os.path.dirname(__file__), 'api_config.json')
 
     # Default config
@@ -1269,7 +1288,26 @@ def get_api_config():
         with open(config_path, 'r') as f:
             config = json.load(f)
 
-    # Umgebungsvariablen überschreiben (für Railway etc.)
+    # Prüfe Session-Key ZUERST (hat Priorität!)
+    session_provider = session.get('api_provider')
+    session_key = session.get('api_key')
+
+    if session_key:
+        # Session-Key vorhanden
+        config['api_connected'] = True
+        config['active_provider'] = session_provider
+        config['session_active'] = True
+        # Markiere den Provider als verbunden
+        if session_provider in config.get('providers', {}):
+            config['providers'][session_provider]['has_key'] = True
+
+        # Hide keys
+        for provider in config.get('providers', {}):
+            config['providers'][provider]['api_key'] = ''
+
+        return jsonify(config)
+
+    # Umgebungsvariablen prüfen (für Railway etc.)
     env_keys = {
         'deepseek': os.environ.get('DEEPSEEK_API_KEY', ''),
         'openai': os.environ.get('OPENAI_API_KEY', ''),
@@ -1280,7 +1318,7 @@ def get_api_config():
         if env_key:
             config.setdefault('providers', {}).setdefault(provider, {})['api_key'] = env_key
 
-    # Status hinzufügen: ist mindestens ein API-Key konfiguriert?
+    # Status: ist mindestens ein API-Key konfiguriert?
     api_connected = False
     for provider in config.get('providers', {}).values():
         if provider.get('api_key') and provider['api_key'] != '***hidden***':
@@ -1288,11 +1326,11 @@ def get_api_config():
             break
 
     config['api_connected'] = api_connected
+    config['session_active'] = False
 
     # Hide API keys für Response
     for provider in config.get('providers', {}):
         if config['providers'][provider].get('api_key'):
-            # Zeige ob Key existiert, aber nicht den Key selbst
             has_key = bool(config['providers'][provider]['api_key'])
             config['providers'][provider]['api_key'] = '***hidden***' if has_key else ''
             config['providers'][provider]['has_key'] = has_key
@@ -1328,6 +1366,41 @@ def update_api_config():
         json.dump(existing, f, indent=2)
 
     return jsonify({'success': True})
+
+@app.route('/api/session-key', methods=['POST'])
+@login_required
+def set_session_api_key():
+    """API-Key in Session speichern (pro User, nicht persistent)"""
+    data = request.json
+    provider = data.get('provider', 'deepseek')
+    api_key = data.get('api_key', '')
+
+    if not api_key:
+        return jsonify({'error': 'API-Key fehlt'}), 400
+
+    # In Session speichern
+    session['api_provider'] = provider
+    session['api_key'] = api_key
+    session.modified = True
+
+    logger.info(f"API-Key in Session gespeichert: {provider}")
+    return jsonify({'success': True, 'provider': provider})
+
+def get_session_api_key():
+    """Holt API-Key aus Session oder Umgebungsvariablen"""
+    # Erst Session prüfen
+    if 'api_key' in session and session['api_key']:
+        return session.get('api_provider', 'deepseek'), session['api_key']
+
+    # Dann Umgebungsvariablen
+    for provider, env_var in [('deepseek', 'DEEPSEEK_API_KEY'),
+                               ('openai', 'OPENAI_API_KEY'),
+                               ('anthropic', 'ANTHROPIC_API_KEY')]:
+        key = os.environ.get(env_var, '')
+        if key:
+            return provider, key
+
+    return None, None
 
 # ============================================================
 # API: PROMPTS
