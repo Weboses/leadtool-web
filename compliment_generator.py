@@ -176,9 +176,96 @@ class ComplimentGenerator:
                 
         except FileNotFoundError:
             logger.warning(f"API-Config nicht gefunden: {config_file}")
+            # Versuche Umgebungsvariablen
+            self._load_from_env()
         except json.JSONDecodeError as e:
             logger.error(f"API-Config ungültig: {e}")
-    
+
+    def _load_from_env(self):
+        """Lade API-Konfiguration aus Umgebungsvariablen"""
+        # DeepSeek ist Standard
+        env_key = os.environ.get('DEEPSEEK_API_KEY', '')
+        if env_key:
+            self.api_enabled = True
+            self.api_key = env_key
+            self.api_base_url = 'https://api.deepseek.com/v1'
+            self.api_model = 'deepseek-chat'
+            logger.info(f"✅ API aus Umgebungsvariable geladen: DeepSeek")
+            return
+
+        # OpenAI
+        env_key = os.environ.get('OPENAI_API_KEY', '')
+        if env_key:
+            self.api_enabled = True
+            self.api_key = env_key
+            self.api_base_url = 'https://api.openai.com/v1'
+            self.api_model = 'gpt-4o-mini'
+            logger.info(f"✅ API aus Umgebungsvariable geladen: OpenAI")
+            return
+
+        # Anthropic
+        env_key = os.environ.get('ANTHROPIC_API_KEY', '')
+        if env_key:
+            self.api_enabled = True
+            self.api_key = env_key
+            self.api_base_url = 'https://api.anthropic.com/v1'
+            self.api_model = 'claude-3-5-sonnet-20241022'
+            logger.info(f"✅ API aus Umgebungsvariable geladen: Anthropic")
+            return
+
+    def set_provider(self, provider: str):
+        """Wechselt den API-Provider zur Laufzeit"""
+        provider = provider.lower()
+
+        providers = {
+            'deepseek': {
+                'base_url': 'https://api.deepseek.com/v1',
+                'model': 'deepseek-chat',
+                'env_key': 'DEEPSEEK_API_KEY'
+            },
+            'openai': {
+                'base_url': 'https://api.openai.com/v1',
+                'model': 'gpt-4o-mini',
+                'env_key': 'OPENAI_API_KEY'
+            },
+            'anthropic': {
+                'base_url': 'https://api.anthropic.com/v1',
+                'model': 'claude-3-5-sonnet-20241022',
+                'env_key': 'ANTHROPIC_API_KEY'
+            }
+        }
+
+        if provider not in providers:
+            logger.warning(f"Unbekannter Provider: {provider}")
+            return False
+
+        config = providers[provider]
+
+        # API-Key aus Umgebungsvariable oder Config-Datei
+        api_key = os.environ.get(config['env_key'], '')
+
+        if not api_key:
+            # Versuche aus Config-Datei
+            try:
+                config_path = os.path.join(os.path.dirname(__file__), 'api_config.json')
+                if os.path.exists(config_path):
+                    with open(config_path, 'r') as f:
+                        api_config = json.load(f)
+                    api_key = api_config.get('providers', {}).get(provider, {}).get('api_key', '')
+            except:
+                pass
+
+        if api_key:
+            self.api_enabled = True
+            self.api_key = api_key
+            self.api_base_url = config['base_url']
+            self.api_model = config['model']
+            logger.info(f"✅ Provider gewechselt zu: {provider} ({self.api_model})")
+            return True
+        else:
+            logger.warning(f"⚠️ Kein API-Key für {provider} gefunden")
+            return False
+
     def _detect_gender(self, first_name: str) -> str:
         """
         Erkennt Geschlecht basierend auf Vorname

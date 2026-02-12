@@ -1251,17 +1251,53 @@ def cancel_task(task_id):
 @app.route('/api/config')
 @login_required
 def get_api_config():
-    """API-Konfiguration abrufen"""
+    """API-Konfiguration abrufen - unterstützt Datei UND Umgebungsvariablen"""
     config_path = os.path.join(os.path.dirname(__file__), 'api_config.json')
+
+    # Default config
+    config = {
+        'providers': {
+            'deepseek': {'api_key': '', 'model': 'deepseek-chat'},
+            'openai': {'api_key': '', 'model': 'gpt-4o'},
+            'anthropic': {'api_key': '', 'model': 'claude-3-5-sonnet-20241022'}
+        },
+        'active_provider': 'deepseek'
+    }
+
+    # Lade aus Datei wenn vorhanden
     if os.path.exists(config_path):
         with open(config_path, 'r') as f:
             config = json.load(f)
-        # Hide API keys
-        for provider in config.get('providers', {}):
-            if config['providers'][provider].get('api_key'):
-                config['providers'][provider]['api_key'] = '***hidden***'
-        return jsonify(config)
-    return jsonify({})
+
+    # Umgebungsvariablen überschreiben (für Railway etc.)
+    env_keys = {
+        'deepseek': os.environ.get('DEEPSEEK_API_KEY', ''),
+        'openai': os.environ.get('OPENAI_API_KEY', ''),
+        'anthropic': os.environ.get('ANTHROPIC_API_KEY', '')
+    }
+
+    for provider, env_key in env_keys.items():
+        if env_key:
+            config.setdefault('providers', {}).setdefault(provider, {})['api_key'] = env_key
+
+    # Status hinzufügen: ist mindestens ein API-Key konfiguriert?
+    api_connected = False
+    for provider in config.get('providers', {}).values():
+        if provider.get('api_key') and provider['api_key'] != '***hidden***':
+            api_connected = True
+            break
+
+    config['api_connected'] = api_connected
+
+    # Hide API keys für Response
+    for provider in config.get('providers', {}):
+        if config['providers'][provider].get('api_key'):
+            # Zeige ob Key existiert, aber nicht den Key selbst
+            has_key = bool(config['providers'][provider]['api_key'])
+            config['providers'][provider]['api_key'] = '***hidden***' if has_key else ''
+            config['providers'][provider]['has_key'] = has_key
+
+    return jsonify(config)
 
 @app.route('/api/config', methods=['POST'])
 @login_required

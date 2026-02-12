@@ -974,6 +974,10 @@ async function loadApiConfig() {
         const response = await fetch('/api/config');
         const config = await response.json();
 
+        // API-Status prüfen und Warnung anzeigen
+        state.apiConnected = config.api_connected || false;
+        updateApiWarning(config);
+
         currentActiveProvider = config.active_provider || 'deepseek';
 
         // Update aktiver Provider Badge
@@ -1391,6 +1395,36 @@ function showToast(message, type = 'info') {
     setTimeout(() => {
         toast.remove();
     }, 4000);
+}
+
+// ============================================================
+// API WARNING
+// ============================================================
+function updateApiWarning(config) {
+    // Entferne alte Warnung
+    const oldWarning = document.getElementById('apiWarning');
+    if (oldWarning) oldWarning.remove();
+
+    // Prüfe ob API verbunden
+    if (!config.api_connected) {
+        // Zeige Warnung in der Leads-View
+        const leadsView = document.getElementById('leadsView');
+        if (leadsView) {
+            const warning = document.createElement('div');
+            warning.id = 'apiWarning';
+            warning.className = 'api-warning';
+            warning.innerHTML = `
+                <span class="warning-icon">⚠️</span>
+                <span class="warning-text">
+                    <strong>KI-API nicht verbunden!</strong>
+                    Kompliment-Generierung mit KI funktioniert nicht.
+                    <a href="#" onclick="switchView('api'); return false;">API-Key einrichten →</a>
+                </span>
+                <button class="warning-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            leadsView.insertBefore(warning, leadsView.firstChild);
+        }
+    }
 }
 
 // ============================================================

@@ -654,6 +654,51 @@ body {
     display: none;
 }
 
+/* API Warning Banner */
+.api-warning {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.15), rgba(239, 68, 68, 0.1));
+    border: 1px solid var(--accent-warning);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+}
+
+.api-warning .warning-icon {
+    font-size: 24px;
+}
+
+.api-warning .warning-text {
+    flex: 1;
+    font-size: 14px;
+}
+
+.api-warning .warning-text a {
+    color: var(--accent-primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.api-warning .warning-text a:hover {
+    text-decoration: underline;
+}
+
+.api-warning .warning-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+.api-warning .warning-close:hover {
+    color: var(--text-primary);
+}
+
 .data-table {
     width: auto;
     min-width: max-content;  /* Mindestens so breit wie Inhalt */
@@ -1240,39 +1285,264 @@ body {
 /* Responsive */
 @media (max-width: 1024px) {
     .sidebar {
-        width: 240px;
+        width: 220px;
+        min-width: 220px;
+    }
+
+    .main-content {
+        margin-left: 220px;
+        width: calc(100vw - 220px);
     }
 }
 
+/* MOBILE - komplett überarbeitet */
 @media (max-width: 768px) {
     .app-container {
         flex-direction: column;
     }
 
+    /* Sidebar wird horizontales Menü */
     .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
         width: 100%;
+        min-width: 100%;
+        height: auto;
+        max-height: none;
+        flex-direction: column;
+        z-index: 1000;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-header {
+        padding: 10px 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .sidebar-header .logo {
+        font-size: 18px;
+    }
+
+    .sidebar-header .version {
+        display: none;
     }
 
     .sidebar-nav {
         display: flex;
+        flex-direction: row;
         overflow-x: auto;
-        padding: 10px;
+        padding: 8px;
+        gap: 4px;
+        -webkit-overflow-scrolling: touch;
     }
 
     .nav-btn {
-        flex-direction: column;
-        padding: 10px;
+        flex-direction: row;
+        padding: 8px 12px;
         font-size: 12px;
+        white-space: nowrap;
+        min-width: auto;
+        flex-shrink: 0;
     }
 
+    .nav-btn .icon {
+        font-size: 16px;
+    }
+
+    /* Progress Panel auf Mobile */
+    .progress-panel {
+        margin: 8px;
+        padding: 10px;
+    }
+
+    .sidebar-footer {
+        display: none;
+    }
+
+    /* Main Content */
+    .main-content {
+        margin-left: 0;
+        margin-top: 120px;  /* Platz für Sidebar-Header + Nav */
+        width: 100%;
+        height: calc(100vh - 120px);
+        padding: 10px;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    /* Views */
+    #leadsView.active {
+        height: calc(100vh - 140px);
+    }
+
+    /* Top Bar */
     .top-bar {
         flex-direction: column;
         align-items: stretch;
+        padding: 10px;
+        gap: 10px;
     }
 
-    .top-bar-left,
+    .top-bar-left {
+        flex-direction: column;
+        gap: 8px;
+    }
+
     .top-bar-right {
+        flex-wrap: wrap;
         justify-content: center;
+        gap: 6px;
+    }
+
+    .select-project {
+        width: 100%;
+        min-width: auto;
+    }
+
+    .search-box input {
+        width: 100%;
+    }
+
+    /* Filter & Action Bars */
+    .filter-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .filter-bar {
+        flex-wrap: wrap;
+    }
+
+    .action-bar {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .action-bar .btn {
+        flex: 1 1 auto;
+        min-width: 100px;
+        justify-content: center;
+    }
+
+    /* Tabelle */
+    .table-container {
+        border-radius: 8px;
+        min-height: 200px;
+    }
+
+    .data-table {
+        font-size: 11px;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 6px 8px;
+        min-width: 60px;
+    }
+
+    .data-table .checkbox-col {
+        width: 30px;
+    }
+
+    .data-table .nr-col {
+        width: 35px;
+        min-width: 35px;
+    }
+
+    /* Pagination */
+    .pagination {
+        padding: 10px;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .pagination .btn {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+
+    /* Modals */
+    .modal-content {
+        margin: 10px;
+        max-width: calc(100vw - 20px);
+        max-height: calc(100vh - 20px);
+    }
+
+    .modal-large,
+    .modal-xlarge {
+        max-width: calc(100vw - 20px);
+    }
+
+    .lead-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Buttons */
+    .btn {
+        padding: 8px 14px;
+        font-size: 13px;
+    }
+
+    .btn-sm {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+
+    /* API Warning */
+    .api-warning {
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+    }
+
+    /* Upload Area */
+    .upload-area {
+        padding: 30px 20px;
+    }
+
+    /* API Cards */
+    .api-cards {
+        grid-template-columns: 1fr;
+    }
+
+    /* Settings */
+    .settings-section {
+        padding: 16px;
+    }
+}
+
+/* Extra kleine Bildschirme */
+@media (max-width: 480px) {
+    .main-content {
+        padding: 8px;
+    }
+
+    .view-header h2 {
+        font-size: 18px;
+    }
+
+    .top-bar-right {
+        flex-direction: column;
+    }
+
+    .top-bar-right .btn {
+        width: 100%;
+    }
+
+    .action-bar .btn {
+        font-size: 11px;
+        padding: 6px 10px;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 4px 6px;
+        font-size: 10px;
     }
 }
 
